@@ -1,0 +1,19 @@
+{
+  "name": "invoice-app-server",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "dev": "node --watch src/index.js",
+    "start": "node src/index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "^12.9.0",
+    "cors": "^2.8.6",
+    "express": "^4.19.2",
+    "nanoid": "^5.1.9",
+    "zod": "^4.3.6"
+  }
+}
+
