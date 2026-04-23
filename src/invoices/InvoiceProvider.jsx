@@ -6,6 +6,7 @@ const InvoiceContext = createContext(null)
 const FILTERS = ['draft', 'pending', 'paid']
 
 function loadFilter() {
+  if (typeof window === 'undefined') return new Set()
   try {
     const raw = localStorage.getItem('invoice.filters')
     if (!raw) return new Set()

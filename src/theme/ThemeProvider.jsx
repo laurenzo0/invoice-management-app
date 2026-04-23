@@ -3,6 +3,7 @@ import { createContext, useEffect, useMemo, useState } from 'react'
 const ThemeContext = createContext(null)
 
 function getInitialTheme() {
+  if (typeof window === 'undefined') return 'light'
   const saved = localStorage.getItem('invoice.theme')
   if (saved === 'light' || saved === 'dark') return saved
   const prefersDark = window.matchMedia?.('(prefers-color-scheme: dark)')?.matches
