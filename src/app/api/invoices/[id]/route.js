@@ -1,18 +1,20 @@
-import { db } from '@/lib/db.js'
+import { supabaseAdmin } from '../../_supabase/server.js'
 import { invoiceUpsertSchema } from '../../_schema.js'
 import { asInvoice, computeTotalCents, httpError } from '../../_util.js'
 
 export async function GET(_req, { params }) {
   const { id } = await params
-  const row = db.prepare('SELECT * FROM invoices WHERE id = ?').get(id)
-  if (!row) return httpError('Invoice not found', 404)
+  const sb = supabaseAdmin()
+  const { data: row, error } = await sb.from('invoices').select('*').eq('id', id).single()
+  if (error) return httpError('Invoice not found', 404)
   return Response.json({ invoice: asInvoice(row) })
 }
 
 export async function PUT(req, { params }) {
   const { id } = await params
-  const existing = db.prepare('SELECT * FROM invoices WHERE id = ?').get(id)
-  if (!existing) return httpError('Invoice not found', 404)
+  const sb = supabaseAdmin()
+  const { data: existing, error: exErr } = await sb.from('invoices').select('*').eq('id', id).single()
+  if (exErr) return httpError('Invoice not found', 404)
 
   const current = asInvoice(existing)
   const body = await req.json().catch(() => null)
@@ -24,46 +26,36 @@ export async function PUT(req, { params }) {
   if (current.status === 'paid' && nextStatus !== 'paid')
     return httpError('Paid invoices cannot be changed back', 409)
 
-  const now = new Date().toISOString()
   const total = computeTotalCents(data.items)
 
-  db.prepare(
-    `UPDATE invoices SET
-      updatedAt=@updatedAt,
-      status=@status,
-      paymentDue=@paymentDue,
-      description=@description,
-      paymentTerms=@paymentTerms,
-      clientName=@clientName,
-      clientEmail=@clientEmail,
-      senderAddress=@senderAddress,
-      clientAddress=@clientAddress,
-      items=@items,
-      total=@total
-     WHERE id=@id`,
-  ).run({
-    id,
-    updatedAt: now,
-    status: nextStatus,
-    paymentDue: data.paymentDue,
-    description: data.description,
-    paymentTerms: data.paymentTerms,
-    clientName: data.clientName,
-    clientEmail: data.clientEmail,
-    senderAddress: JSON.stringify(data.senderAddress),
-    clientAddress: JSON.stringify(data.clientAddress),
-    items: JSON.stringify(data.items),
-    total,
-  })
+  const { data: updated, error } = await sb
+    .from('invoices')
+    .update({
+      status: nextStatus,
+      payment_due: data.paymentDue,
+      description: data.description,
+      payment_terms: data.paymentTerms,
+      client_name: data.clientName,
+      client_email: data.clientEmail,
+      sender_address: data.senderAddress,
+      client_address: data.clientAddress,
+      items: data.items,
+      total_cents: total,
+    })
+    .eq('id', id)
+    .select('*')
+    .single()
 
-  const updated = db.prepare('SELECT * FROM invoices WHERE id = ?').get(id)
+  if (error) return httpError('Failed to update invoice', 500, error)
+
   return Response.json({ invoice: asInvoice(updated) })
 }
 
 export async function DELETE(_req, { params }) {
   const { id } = await params
-  const info = db.prepare('DELETE FROM invoices WHERE id = ?').run(id)
-  if (!info || info.changes === 0) return httpError('Invoice not found', 404)
+  const sb = supabaseAdmin()
+  const { error } = await sb.from('invoices').delete().eq('id', id)
+  if (error) return httpError('Failed to delete invoice', 500, error)
   return new Response(null, { status: 204 })
 }
 

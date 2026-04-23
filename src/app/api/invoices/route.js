@@ -1,7 +1,6 @@
-import { db } from '@/lib/db.js'
+import { supabaseAdmin } from '../_supabase/server.js'
 import { invoiceUpsertSchema } from '../_schema.js'
 import { asInvoice, computeTotalCents, httpError, newId } from '../_util.js'
-import { nanoid } from 'nanoid'
 
 export async function GET(req) {
   const url = new URL(req.url)
@@ -18,15 +17,15 @@ export async function GET(req) {
     if (!allowed.has(s)) return httpError(`Invalid status filter: ${s}`, 400)
   }
 
-  let rows
-  if (statuses.length === 0) {
-    rows = db.prepare('SELECT * FROM invoices ORDER BY updatedAt DESC').all()
-  } else {
-    const placeholders = statuses.map(() => '?').join(',')
-    rows = db
-      .prepare(`SELECT * FROM invoices WHERE status IN (${placeholders}) ORDER BY updatedAt DESC`)
-      .all(...statuses)
+  const sb = supabaseAdmin()
+  let query = sb.from('invoices').select('*').order('updated_at', { ascending: false })
+
+  if (statuses.length > 0) {
+    query = query.in('status', statuses)
   }
+
+  const { data: rows, error } = await query
+  if (error) return httpError('Failed to fetch invoices', 500, error)
 
   return Response.json({ invoices: rows.map(asInvoice) })
 }
@@ -37,33 +36,31 @@ export async function POST(req) {
   if (!parsed.success) return httpError('Validation error', 400, parsed.error.flatten())
 
   const data = parsed.data
-  const id = nanoid(8).toUpperCase()
-  const now = new Date().toISOString()
+  const id = newId()
   const status = data.status ?? 'pending'
   const total = computeTotalCents(data.items)
 
-  db.prepare(
-    `INSERT INTO invoices
-      (id, createdAt, updatedAt, status, paymentDue, description, paymentTerms, clientName, clientEmail, senderAddress, clientAddress, items, total)
-     VALUES
-      (@id, @createdAt, @updatedAt, @status, @paymentDue, @description, @paymentTerms, @clientName, @clientEmail, @senderAddress, @clientAddress, @items, @total)`,
-  ).run({
-    id,
-    createdAt: now,
-    updatedAt: now,
-    status,
-    paymentDue: data.paymentDue,
-    description: data.description,
-    paymentTerms: data.paymentTerms,
-    clientName: data.clientName,
-    clientEmail: data.clientEmail,
-    senderAddress: JSON.stringify(data.senderAddress),
-    clientAddress: JSON.stringify(data.clientAddress),
-    items: JSON.stringify(data.items),
-    total,
-  })
+  const sb = supabaseAdmin()
+  const { data: created, error } = await sb
+    .from('invoices')
+    .insert({
+      id,
+      status,
+      payment_due: data.paymentDue,
+      description: data.description,
+      payment_terms: data.paymentTerms,
+      client_name: data.clientName,
+      client_email: data.clientEmail,
+      sender_address: data.senderAddress,
+      client_address: data.clientAddress,
+      items: data.items,
+      total_cents: total,
+    })
+    .select('*')
+    .single()
 
-  const created = db.prepare('SELECT * FROM invoices WHERE id = ?').get(id)
+  if (error) return httpError('Failed to create invoice', 500, error)
+
   return Response.json({ invoice: asInvoice(created) }, { status: 201 })
 }
 

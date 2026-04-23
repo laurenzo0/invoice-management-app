@@ -1,10 +1,11 @@
-import { db, withTxn } from '@/lib/db.js'
+import { supabaseAdmin } from '../../_supabase/server.js'
 import { computeTotalCents, httpError } from '../../_util.js'
 
 export async function POST() {
   if (process.env.NODE_ENV === 'production') return httpError('Not available in production', 404)
 
-  const count = db.prepare('SELECT COUNT(*) AS c FROM invoices').get().c
+  const sb = supabaseAdmin()
+  const { count } = await sb.from('invoices').select('*', { count: 'exact', head: true })
   if (count > 0) return Response.json({ seeded: false, reason: 'already has data' })
 
   const baseAddress = {
@@ -25,52 +26,37 @@ export async function POST() {
   ]
   const itemsB = [{ name: 'Landing Page', quantity: 1, price: 950 }]
 
-  const now = new Date().toISOString()
   const demoData = [
     {
       id: 'RT3080',
-      createdAt: now,
-      updatedAt: now,
       status: 'pending',
-      paymentDue: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
+      payment_due: new Date(Date.now() + 7 * 86400000).toISOString().slice(0, 10),
       description: 'Re-branding',
-      paymentTerms: 7,
-      clientName: 'Jensen Huang',
-      clientEmail: 'jensen@example.com',
-      senderAddress: JSON.stringify(baseAddress),
-      clientAddress: JSON.stringify(clientAddress),
-      items: JSON.stringify(itemsA),
-      total: computeTotalCents(itemsA),
+      payment_terms: 7,
+      client_name: 'Jensen Huang',
+      client_email: 'jensen@example.com',
+      sender_address: baseAddress,
+      client_address: clientAddress,
+      items: itemsA,
+      total_cents: computeTotalCents(itemsA),
     },
     {
       id: 'XM9141',
-      createdAt: now,
-      updatedAt: now,
       status: 'draft',
-      paymentDue: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
+      payment_due: new Date(Date.now() + 14 * 86400000).toISOString().slice(0, 10),
       description: 'Landing page design',
-      paymentTerms: 14,
-      clientName: 'Alex Johnson',
-      clientEmail: 'alex@example.com',
-      senderAddress: JSON.stringify(baseAddress),
-      clientAddress: JSON.stringify(clientAddress),
-      items: JSON.stringify(itemsB),
-      total: computeTotalCents(itemsB),
+      payment_terms: 14,
+      client_name: 'Alex Johnson',
+      client_email: 'alex@example.com',
+      sender_address: baseAddress,
+      client_address: clientAddress,
+      items: itemsB,
+      total_cents: computeTotalCents(itemsB),
     },
   ]
 
-  const make = withTxn(() => {
-    const insert = db.prepare(
-      `INSERT INTO invoices
-        (id, createdAt, updatedAt, status, paymentDue, description, paymentTerms, clientName, clientEmail, senderAddress, clientAddress, items, total)
-       VALUES
-        (@id, @createdAt, @updatedAt, @status, @paymentDue, @description, @paymentTerms, @clientName, @clientEmail, @senderAddress, @clientAddress, @items, @total)`,
-    )
-    for (const inv of demoData) {
-      insert.run(inv)
-    }
-  })
-  make()
+  const { error } = await sb.from('invoices').insert(demoData)
+  if (error) return httpError('Failed to seed database', 500, error)
 
   return Response.json({ seeded: true })
 }

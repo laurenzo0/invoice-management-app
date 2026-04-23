@@ -1,11 +1,12 @@
-import { db } from '@/lib/db.js'
+import { supabaseAdmin } from '../../../_supabase/server.js'
 import { invoiceStatusSchema } from '../../../_schema.js'
 import { asInvoice, httpError } from '../../../_util.js'
 
 export async function PATCH(req, { params }) {
   const { id } = await params
-  const existing = db.prepare('SELECT * FROM invoices WHERE id = ?').get(id)
-  if (!existing) return httpError('Invoice not found', 404)
+  const sb = supabaseAdmin()
+  const { data: existing, error: exErr } = await sb.from('invoices').select('*').eq('id', id).single()
+  if (exErr) return httpError('Invoice not found', 404)
   const current = asInvoice(existing)
 
   const body = await req.json().catch(() => null)
@@ -17,10 +18,14 @@ export async function PATCH(req, { params }) {
   if (current.status === 'draft' && nextStatus === 'paid')
     return httpError('Draft invoices must go to pending first', 409)
 
-  const now = new Date().toISOString()
-  db.prepare('UPDATE invoices SET status=?, updatedAt=? WHERE id=?').run(nextStatus, now, id)
+  const { data: updated, error } = await sb
+    .from('invoices')
+    .update({ status: nextStatus })
+    .eq('id', id)
+    .select('*')
+    .single()
 
-  const updated = db.prepare('SELECT * FROM invoices WHERE id = ?').get(id)
+  if (error) return httpError('Failed to update status', 500, error)
   return Response.json({ invoice: asInvoice(updated) })
 }
 

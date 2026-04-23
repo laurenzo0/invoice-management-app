@@ -21,18 +21,18 @@ export function asInvoice(row) {
   if (!row) return null
   return {
     id: row.id,
-    createdAt: row.createdAt,
-    updatedAt: row.updatedAt,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
     status: row.status,
-    paymentDue: row.paymentDue,
+    paymentDue: row.payment_due,
     description: row.description,
-    paymentTerms: row.paymentTerms,
-    clientName: row.clientName,
-    clientEmail: row.clientEmail,
-    senderAddress: typeof row.senderAddress === 'string' ? JSON.parse(row.senderAddress) : row.senderAddress,
-    clientAddress: typeof row.clientAddress === 'string' ? JSON.parse(row.clientAddress) : row.clientAddress,
-    items: typeof row.items === 'string' ? JSON.parse(row.items) : row.items,
-    totalCents: row.total,
+    paymentTerms: row.payment_terms,
+    clientName: row.client_name,
+    clientEmail: row.client_email,
+    senderAddress: row.sender_address,
+    clientAddress: row.client_address,
+    items: row.items,
+    totalCents: row.total_cents,
   }
 }
 
