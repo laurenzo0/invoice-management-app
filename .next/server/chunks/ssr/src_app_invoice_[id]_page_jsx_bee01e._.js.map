@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 7, "column": 0}, "map": {"version":3,"sources":["file://C%3A/Users/USER/Desktop/invoice%20management/invoice-app/src/app/invoice/%5Bid%5D/page.jsx"],"sourcesContent":["\"use client\"\n\nimport { use } from 'react'\nimport { InvoiceDetailPage } from '../../../pages/InvoiceDetailPage.jsx'\n\nexport default function Page({ params }) {\n  const unwrappedParams = use(params)\n  return <InvoiceDetailPage id={unwrappedParams.id} />\n}\n\n"],"names":[],"mappings":";;;;AAEA;;;;;;AAFA;;;;AAKe,SAAS,KAAK,EAAE,MAAM,EAAE;IACrC,MAAM,kBAAkB,CAAA,GAAA,qMAAA,CAAA,MAAG,AAAD,EAAE;IAC5B,qBAAO,8OAAC;QAAkB,IAAI,gBAAgB,EAAE;;;;;;AAClD"}},
+    {"offset": {"line": 31, "column": 0}, "map": {"version":3,"sources":[],"names":[],"mappings":"A"}}]
+}

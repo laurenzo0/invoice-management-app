@@ -2,7 +2,7 @@
 
 import { use } from 'react'
 import { useRouter } from 'next/navigation'
-import { InvoiceFormPage } from '../../../../pages/InvoiceFormPage.jsx'
+import { InvoiceFormPage } from '../../../../views/InvoiceFormPage.jsx'
 
 export default function Page({ params }) {
   const unwrappedParams = use(params)

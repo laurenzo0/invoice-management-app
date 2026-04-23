@@ -1,7 +1,7 @@
 "use client"
 
 import { useRouter } from 'next/navigation'
-import { InvoiceFormPage } from '../../../pages/InvoiceFormPage.jsx'
+import { InvoiceFormPage } from '../../../views/InvoiceFormPage.jsx'
 
 export default function Page() {
   const router = useRouter()

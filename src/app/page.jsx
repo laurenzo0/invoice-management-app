@@ -1,6 +1,6 @@
 "use client"
 
-import { InvoiceListPage } from '../pages/InvoiceListPage.jsx'
+import { InvoiceListPage } from '../views/InvoiceListPage.jsx'
 
 export default function Page() {
   return <InvoiceListPage />
