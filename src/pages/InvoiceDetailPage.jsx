@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { api } from '../api/client.js'
 import { useInvoices } from '../invoices/useInvoices.js'
 import { StatusBadge } from '../ui/StatusBadge.jsx'
@@ -10,6 +11,7 @@ function formatMoney(cents) {
 }
 
 export function InvoiceDetailPage({ id }) {
+  const router = useRouter()
   const { deleteInvoice, markPaid } = useInvoices()
   const [invoice, setInvoice] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -39,7 +41,7 @@ export function InvoiceDetailPage({ id }) {
   return (
     <section className="page">
       <div className="row gap alignCenter">
-        <button type="button" className="ghostButton" onClick={() => (window.location.hash = '#/')}>
+        <button type="button" className="ghostButton" onClick={() => router.push('/')}>
           ← Go back
         </button>
       </div>
@@ -64,7 +66,7 @@ export function InvoiceDetailPage({ id }) {
                 <button
                   type="button"
                   className="secondaryButton"
-                  onClick={() => (window.location.hash = `#/invoice/${invoice.id}/edit`)}
+                  onClick={() => router.push(`/invoice/${invoice.id}/edit`)}
                   disabled={invoice.status === 'paid'}
                 >
                   Edit
@@ -178,7 +180,7 @@ export function InvoiceDetailPage({ id }) {
                   setBusy(true)
                   try {
                     await deleteInvoice(invoice.id)
-                    window.location.hash = '#/'
+                      router.push('/')
                   } finally {
                     setBusy(false)
                   }

@@ -1,16 +1,48 @@
-# React + Vite
+# Invoice Management Application
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Full-stack invoice app built with **React (Next.js)** + **Supabase Postgres**.
 
-Currently, two official plugins are available:
+## Features
+- Create, view, edit, delete invoices
+- Save drafts, mark pending as paid
+- Filter by status (draft / pending / paid)
+- Light/dark theme (persists in LocalStorage)
+- Fully responsive + accessible modal (focus trap + ESC)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+## Local development
+Install and run:
 
-## React Compiler
+```bash
+npm install
+npm run dev
+```
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+App runs at `http://localhost:3000`.
 
-## Expanding the ESLint configuration
+## Supabase setup
+1. Create a Supabase project.
+2. Run the SQL in `supabase/schema.sql` (Supabase SQL editor).
+3. Add environment variables:
 
-If you are developing a production application, we recommend using TypeScript with type-aware lint rules enabled. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) for information on how to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+- `SUPABASE_URL`
+- `SUPABASE_SERVICE_ROLE_KEY` (server-only; add to Vercel Env Vars too)
+
+## API routes (Next.js)
+All APIs are served from the same deployment (Vercel):
+- `GET /api/health`
+- `GET /api/invoices?status=draft,pending`
+- `POST /api/invoices`
+- `GET /api/invoices/:id`
+- `PUT /api/invoices/:id`
+- `DELETE /api/invoices/:id`
+- `PATCH /api/invoices/:id/status`
+
+Dev-only seed route (disabled in production):
+- `POST /api/dev/seed`
+
+## Deploy (Vercel)
+1. Import this repo into Vercel.
+2. Set `SUPABASE_URL` and `SUPABASE_SERVICE_ROLE_KEY` in Vercel project settings.
+3. Deploy from `main`.
+
+

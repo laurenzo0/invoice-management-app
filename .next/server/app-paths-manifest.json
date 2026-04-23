@@ -1,0 +1,7 @@
+{
+  "/invoice/[id]/page": "app/invoice/[id]/page.js",
+  "/invoice/new/page": "app/invoice/new/page.js",
+  "/page": "app/page.js",
+  "/api/invoices/[id]/route": "app/api/invoices/[id]/route.js",
+  "/api/invoices/route": "app/api/invoices/route.js"
+}

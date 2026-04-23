@@ -19,6 +19,24 @@ export default defineConfig([
     },
   },
   {
+    files: ['src/app/**/*.{js,jsx}'],
+    rules: {
+      // Next.js `layout.jsx` legitimately exports `metadata` in the same file.
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
+    files: ['src/app/api/**/*.{js,jsx}'],
+    languageOptions: {
+      globals: {
+        ...globals.node,
+      },
+    },
+    rules: {
+      'react-refresh/only-export-components': 'off',
+    },
+  },
+  {
     files: ['server/src/**/*.{js,jsx}'],
     languageOptions: {
       globals: {

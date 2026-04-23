@@ -34,7 +34,7 @@ function fieldErr(errors, path, fallback) {
   return fallback ?? null
 }
 
-export function InvoiceFormPage({ mode, invoiceId, onClose }) {
+export function InvoiceFormPage({ mode, invoiceId, onClose, onCreated }) {
   const { createInvoice, updateInvoice } = useInvoices()
   const [values, setValues] = useState(() => emptyInvoice())
   const [loading, setLoading] = useState(mode === 'edit')
@@ -109,7 +109,7 @@ export function InvoiceFormPage({ mode, invoiceId, onClose }) {
         await updateInvoice(invoiceId, payload)
       } else {
         const created = await createInvoice(payload)
-        window.location.hash = `#/invoice/${created.id}`
+        if (onCreated) onCreated(created.id)
         return
       }
       onClose?.()

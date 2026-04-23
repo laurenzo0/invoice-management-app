@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useInvoices } from '../invoices/useInvoices.js'
 import { StatusBadge } from '../ui/StatusBadge.jsx'
 import { FilterMenu } from '../ui/FilterMenu.jsx'
@@ -15,6 +17,7 @@ function formatDue(isoDate) {
 }
 
 export function InvoiceListPage() {
+  const router = useRouter()
   const { invoices, loading, error, statusFilter, setStatusFilter, seed } = useInvoices()
   const [filtersOpen, setFiltersOpen] = useState(false)
 
@@ -54,7 +57,7 @@ export function InvoiceListPage() {
             ) : null}
           </div>
 
-          <button type="button" className="primaryButton" onClick={() => (window.location.hash = '#/invoice/new')}>
+          <button type="button" className="primaryButton" onClick={() => router.push('/invoice/new')}>
             New Invoice
           </button>
         </div>
@@ -88,7 +91,7 @@ export function InvoiceListPage() {
       <ul className="invoiceList" aria-label="Invoice list">
         {invoices.map((inv) => (
           <li key={inv.id}>
-            <a className="invoiceRow" href={`#/invoice/${inv.id}`}>
+            <Link className="invoiceRow" href={`/invoice/${inv.id}`}>
               <div className="rowTop">
                 <div className="invId">
                   <span className="hash">#</span>
@@ -101,7 +104,7 @@ export function InvoiceListPage() {
                 <div className="invTotal">{formatMoney(inv.totalCents)}</div>
                 <StatusBadge status={inv.status} />
               </div>
-            </a>
+            </Link>
           </li>
         ))}
       </ul>
