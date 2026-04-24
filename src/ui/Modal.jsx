@@ -8,37 +8,30 @@ function getFocusable(container) {
   return [...nodes].filter((el) => !el.hasAttribute('disabled') && !el.getAttribute('aria-hidden'))
 }
 
-export function Modal({ title, children, onClose, actions, initialFocusSelector }) {
+/**
+ * Modal / Drawer
+ * @param {object} props
+ * @param {'dialog'|'drawer'} [props.type='dialog']  dialog = centered, drawer = slides from left
+ */
+export function Modal({ title, children, onClose, actions, initialFocusSelector, type = 'dialog' }) {
   const overlayRef = useRef(null)
   const dialogRef = useRef(null)
-
   const reactId = useId()
   const ariaTitleId = `modal_${reactId}`
 
   useEffect(() => {
     const onKeyDown = (e) => {
-      if (e.key === 'Escape') {
-        e.preventDefault()
-        onClose?.()
-        return
-      }
+      if (e.key === 'Escape') { e.preventDefault(); onClose?.(); return }
       if (e.key !== 'Tab') return
-
       const focusables = getFocusable(dialogRef.current)
-      if (focusables.length === 0) return
+      if (!focusables.length) return
       const first = focusables[0]
       const last = focusables[focusables.length - 1]
       const active = document.activeElement
       if (e.shiftKey) {
-        if (active === first || !dialogRef.current.contains(active)) {
-          e.preventDefault()
-          last.focus()
-        }
+        if (active === first || !dialogRef.current.contains(active)) { e.preventDefault(); last.focus() }
       } else {
-        if (active === last) {
-          e.preventDefault()
-          first.focus()
-        }
+        if (active === last) { e.preventDefault(); first.focus() }
       }
     }
 
@@ -62,11 +55,11 @@ export function Modal({ title, children, onClose, actions, initialFocusSelector 
 
   return (
     <div
-      className="modalOverlay"
+      className={`modalOverlay ${type}`}
       ref={overlayRef}
       role="presentation"
       onMouseDown={(e) => {
-        if (e.target === overlayRef.current) onClose?.()
+        if (type === 'dialog' && e.target === overlayRef.current) onClose?.()
       }}
     >
       <div
@@ -78,17 +71,16 @@ export function Modal({ title, children, onClose, actions, initialFocusSelector 
         tabIndex={-1}
       >
         <div className="modalHeader">
-          <h2 className="h2" id={ariaTitleId}>
-            {title}
-          </h2>
+          <h2 className="h2" id={ariaTitleId}>{title}</h2>
           <button className="iconPill" type="button" onClick={onClose} aria-label="Close modal">
-            ✕
+            <svg width="12" height="12" viewBox="0 0 12 12" fill="none" aria-hidden="true">
+              <path d="M1 1l10 10M11 1L1 11" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round"/>
+            </svg>
           </button>
         </div>
         <div className="modalBody">{children}</div>
-        {actions ? <div className="modalActions">{actions}</div> : null}
+        {actions && <div className="modalActions">{actions}</div>}
       </div>
     </div>
   )
 }
-

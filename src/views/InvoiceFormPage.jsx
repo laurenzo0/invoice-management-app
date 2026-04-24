@@ -1,3 +1,5 @@
+'use client'
+
 import { useEffect, useMemo, useState } from 'react'
 import { api } from '../api/client.js'
 import { useInvoices } from '../invoices/useInvoices.js'
@@ -23,7 +25,7 @@ function emptyInvoice() {
   }
 }
 
-function fieldErr(errors, path, fallback) {
+function fieldErr(errors, path) {
   const parts = path.split('.')
   let cur = errors?.fieldErrors
   for (const p of parts) {
@@ -31,7 +33,15 @@ function fieldErr(errors, path, fallback) {
     cur = cur[p]
   }
   if (Array.isArray(cur) && cur.length) return cur[0]
-  return fallback ?? null
+  return null
+}
+
+function TrashIcon() {
+  return (
+    <svg width="13" height="16" viewBox="0 0 13 16" fill="none" aria-hidden="true">
+      <path d="M1 3.5h11M4.5 3.5V2h4v1.5M2 3.5l.75 10.25a1 1 0 001 .75h5.5a1 1 0 001-.75L11 3.5" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
+    </svg>
+  )
 }
 
 export function InvoiceFormPage({ mode, invoiceId, onClose, onCreated }) {
@@ -67,9 +77,7 @@ export function InvoiceFormPage({ mode, invoiceId, onClose, onCreated }) {
         if (alive) setLoading(false)
       }
     })()
-    return () => {
-      alive = false
-    }
+    return () => { alive = false }
   }, [invoiceId, mode])
 
   const title = mode === 'edit' ? `Edit #${invoiceId}` : 'New Invoice'
@@ -95,24 +103,19 @@ export function InvoiceFormPage({ mode, invoiceId, onClose, onCreated }) {
 
   const submit = async (status) => {
     setSubmitError(null)
-    const v = { ...values }
-    const result = validateInvoiceForm(v)
-    if (!result.ok) {
-      setErrors(result.errors)
-      return
-    }
+    const result = validateInvoiceForm({ ...values })
+    if (!result.ok) { setErrors(result.errors); return }
     setErrors(null)
     setSaving(true)
     try {
       const payload = { ...result.data, status }
       if (mode === 'edit') {
         await updateInvoice(invoiceId, payload)
+        onClose?.()
       } else {
         const created = await createInvoice(payload)
         if (onCreated) onCreated(created.id)
-        return
       }
-      onClose?.()
     } catch (e) {
       setSubmitError(e)
       if (e.details) setErrors(e.details)
@@ -124,6 +127,7 @@ export function InvoiceFormPage({ mode, invoiceId, onClose, onCreated }) {
   return (
     <Modal
       title={title}
+      type="drawer"
       onClose={onClose}
       initialFocusSelector='input[name="clientName"]'
       actions={
@@ -132,57 +136,64 @@ export function InvoiceFormPage({ mode, invoiceId, onClose, onCreated }) {
             Discard
           </button>
           <div className="spacer" />
-          <button type="button" className="secondaryButton" onClick={() => submit('draft')} disabled={saving || loading}>
+          <button
+            type="button"
+            className="secondaryButton"
+            onClick={() => submit('draft')}
+            disabled={saving || loading}
+          >
             Save as Draft
           </button>
-          <button type="button" className="primaryButton" onClick={() => submit('pending')} disabled={saving || loading}>
-            Save &amp; Send
+          <button
+            type="button"
+            className="primaryButton"
+            onClick={() => submit('pending')}
+            disabled={saving || loading}
+          >
+            {saving ? 'Saving…' : mode === 'edit' ? 'Save Changes' : 'Save & Send'}
           </button>
         </div>
       }
     >
-      {loading ? <div className="card">Loading…</div> : null}
-      {submitError ? (
-        <div className="formError" role="alert">
+      {loading && (
+        <div className="subtle" style={{ padding: '24px 0' }}>Loading invoice data…</div>
+      )}
+
+      {submitError && (
+        <div className="formError" role="alert" style={{ marginBottom: 16 }}>
           {submitError.message}
         </div>
-      ) : null}
+      )}
 
       <form
         className="form"
-        onSubmit={(e) => {
-          e.preventDefault()
-          submit('pending')
-        }}
+        onSubmit={(e) => { e.preventDefault(); submit('pending') }}
+        noValidate
       >
+        {/* Bill From */}
         <fieldset className="fieldset">
           <legend className="legend">Bill From</legend>
-          <div className="grid2">
+          <Field
+            label="Street Address" name="senderStreet"
+            value={values.senderAddress.street}
+            error={fieldErr(errors, 'senderAddress.street')}
+            onChange={(v) => onChange('senderAddress.street', v)}
+          />
+          <div className="grid3">
             <Field
-              label="Street Address"
-              name="senderStreet"
-              value={values.senderAddress.street}
-              error={fieldErr(errors, 'senderAddress.street')}
-              onChange={(v) => onChange('senderAddress.street', v)}
-            />
-            <div />
-            <Field
-              label="City"
-              name="senderCity"
+              label="City" name="senderCity"
               value={values.senderAddress.city}
               error={fieldErr(errors, 'senderAddress.city')}
               onChange={(v) => onChange('senderAddress.city', v)}
             />
             <Field
-              label="Post Code"
-              name="senderPostCode"
+              label="Post Code" name="senderPostCode"
               value={values.senderAddress.postCode}
               error={fieldErr(errors, 'senderAddress.postCode')}
               onChange={(v) => onChange('senderAddress.postCode', v)}
             />
             <Field
-              label="Country"
-              name="senderCountry"
+              label="Country" name="senderCountry"
               value={values.senderAddress.country}
               error={fieldErr(errors, 'senderAddress.country')}
               onChange={(v) => onChange('senderAddress.country', v)}
@@ -190,48 +201,42 @@ export function InvoiceFormPage({ mode, invoiceId, onClose, onCreated }) {
           </div>
         </fieldset>
 
+        {/* Bill To */}
         <fieldset className="fieldset">
           <legend className="legend">Bill To</legend>
-          <div className="grid2">
+          <Field
+            label="Client's Name" name="clientName"
+            value={values.clientName}
+            error={fieldErr(errors, 'clientName')}
+            onChange={(v) => onChange('clientName', v)}
+          />
+          <Field
+            label="Client's Email" name="clientEmail" type="email"
+            value={values.clientEmail}
+            error={fieldErr(errors, 'clientEmail')}
+            onChange={(v) => onChange('clientEmail', v)}
+          />
+          <Field
+            label="Street Address" name="clientStreet"
+            value={values.clientAddress.street}
+            error={fieldErr(errors, 'clientAddress.street')}
+            onChange={(v) => onChange('clientAddress.street', v)}
+          />
+          <div className="grid3">
             <Field
-              label="Client’s Name"
-              name="clientName"
-              value={values.clientName}
-              error={fieldErr(errors, 'clientName')}
-              onChange={(v) => onChange('clientName', v)}
-            />
-            <Field
-              label="Client’s Email"
-              name="clientEmail"
-              value={values.clientEmail}
-              error={fieldErr(errors, 'clientEmail')}
-              onChange={(v) => onChange('clientEmail', v)}
-            />
-            <Field
-              label="Street Address"
-              name="clientStreet"
-              value={values.clientAddress.street}
-              error={fieldErr(errors, 'clientAddress.street')}
-              onChange={(v) => onChange('clientAddress.street', v)}
-            />
-            <div />
-            <Field
-              label="City"
-              name="clientCity"
+              label="City" name="clientCity"
               value={values.clientAddress.city}
               error={fieldErr(errors, 'clientAddress.city')}
               onChange={(v) => onChange('clientAddress.city', v)}
             />
             <Field
-              label="Post Code"
-              name="clientPostCode"
+              label="Post Code" name="clientPostCode"
               value={values.clientAddress.postCode}
               error={fieldErr(errors, 'clientAddress.postCode')}
               onChange={(v) => onChange('clientAddress.postCode', v)}
             />
             <Field
-              label="Country"
-              name="clientCountry"
+              label="Country" name="clientCountry"
               value={values.clientAddress.country}
               error={fieldErr(errors, 'clientAddress.country')}
               onChange={(v) => onChange('clientAddress.country', v)}
@@ -239,85 +244,65 @@ export function InvoiceFormPage({ mode, invoiceId, onClose, onCreated }) {
           </div>
         </fieldset>
 
+        {/* Invoice Details */}
         <fieldset className="fieldset">
-          <legend className="legend">Invoice</legend>
+          <legend className="legend">Invoice Details</legend>
           <div className="grid2">
             <Field
-              label="Invoice Date"
-              name="paymentDue"
-              type="date"
+              label="Invoice Date" name="paymentDue" type="date"
               value={values.paymentDue}
               error={fieldErr(errors, 'paymentDue')}
               onChange={(v) => onChange('paymentDue', v)}
             />
             <Field
-              label="Payment Terms (days)"
-              name="paymentTerms"
-              type="number"
+              label="Payment Terms (days)" name="paymentTerms" type="number"
               value={values.paymentTerms}
               error={fieldErr(errors, 'paymentTerms')}
               onChange={(v) => onChange('paymentTerms', v)}
             />
-            <Field
-              label="Project Description"
-              name="description"
-              value={values.description}
-              error={fieldErr(errors, 'description')}
-              onChange={(v) => onChange('description', v)}
-            />
           </div>
+          <Field
+            label="Project Description" name="description"
+            value={values.description}
+            error={fieldErr(errors, 'description')}
+            onChange={(v) => onChange('description', v)}
+          />
         </fieldset>
 
+        {/* Item List */}
         <fieldset className="fieldset">
           <legend className="legend">Item List</legend>
-          {typeof errors?.formErrors?.[0] === 'string' ? (
-            <div className="formError" role="alert">
-              {errors.formErrors[0]}
-            </div>
-          ) : null}
+
+          {errors?.formErrors?.[0] && (
+            <div className="formError" role="alert">{errors.formErrors[0]}</div>
+          )}
+
           <div className="itemsEditor">
             {values.items.map((it, idx) => (
               <div className="itemRow" key={idx}>
                 <Field
-                  label="Item Name"
-                  name={`itemName_${idx}`}
+                  label="Item Name" name={`itemName_${idx}`}
                   value={it.name}
                   error={errors?.fieldErrors?.items?.[idx]?.name?.[0] ?? null}
-                  onChange={(v) => {
-                    setValues((prev) => {
-                      const next = structuredClone(prev)
-                      next.items[idx].name = v
-                      return next
-                    })
-                  }}
+                  onChange={(v) => setValues((prev) => {
+                    const next = structuredClone(prev); next.items[idx].name = v; return next
+                  })}
                 />
                 <Field
-                  label="Qty."
-                  name={`itemQty_${idx}`}
-                  type="number"
+                  label="Qty." name={`itemQty_${idx}`} type="number"
                   value={it.quantity}
                   error={errors?.fieldErrors?.items?.[idx]?.quantity?.[0] ?? null}
-                  onChange={(v) => {
-                    setValues((prev) => {
-                      const next = structuredClone(prev)
-                      next.items[idx].quantity = v
-                      return next
-                    })
-                  }}
+                  onChange={(v) => setValues((prev) => {
+                    const next = structuredClone(prev); next.items[idx].quantity = v; return next
+                  })}
                 />
                 <Field
-                  label="Price"
-                  name={`itemPrice_${idx}`}
-                  type="number"
+                  label="Price" name={`itemPrice_${idx}`} type="number"
                   value={it.price}
                   error={errors?.fieldErrors?.items?.[idx]?.price?.[0] ?? null}
-                  onChange={(v) => {
-                    setValues((prev) => {
-                      const next = structuredClone(prev)
-                      next.items[idx].price = v
-                      return next
-                    })
-                  }}
+                  onChange={(v) => setValues((prev) => {
+                    const next = structuredClone(prev); next.items[idx].price = v; return next
+                  })}
                 />
                 <div className="field">
                   <div className="label">Total</div>
@@ -329,29 +314,31 @@ export function InvoiceFormPage({ mode, invoiceId, onClose, onCreated }) {
                   type="button"
                   className="iconPill danger"
                   aria-label="Remove item"
-                  onClick={() => {
-                    setValues((prev) => {
-                      const next = structuredClone(prev)
-                      next.items.splice(idx, 1)
-                      return next.items.length ? next : { ...next, items: [{ name: '', quantity: 1, price: 0 }] }
-                    })
-                  }}
+                  style={{ alignSelf: 'flex-end', height: 48 }}
+                  onClick={() => setValues((prev) => {
+                    const next = structuredClone(prev)
+                    next.items.splice(idx, 1)
+                    return next.items.length ? next : { ...next, items: [{ name: '', quantity: 1, price: 0 }] }
+                  })}
                 >
-                  🗑
+                  <TrashIcon />
                 </button>
               </div>
             ))}
           </div>
+
           <button
             type="button"
             className="secondaryButton full"
-            onClick={() =>
-              setValues((prev) => ({ ...prev, items: [...prev.items, { name: '', quantity: 1, price: 0 }] }))
-            }
+            style={{ marginTop: 8 }}
+            onClick={() => setValues((prev) => ({
+              ...prev, items: [...prev.items, { name: '', quantity: 1, price: 0 }],
+            }))}
           >
             + Add New Item
           </button>
-          <div className="formTotal subtle">Current total: {total}</div>
+
+          <div className="formTotal subtle">Total: <strong>{total}</strong></div>
         </fieldset>
       </form>
     </Modal>
@@ -362,26 +349,19 @@ function Field({ label, name, value, onChange, error, type = 'text' }) {
   const id = `f_${name}`
   const hasError = Boolean(error)
   return (
-    <div className={`field ${hasError ? 'hasError' : ''}`}>
-      <label className="label" htmlFor={id}>
-        {label}
-      </label>
+    <div className={`field${hasError ? ' hasError' : ''}`}>
+      <label className="label" htmlFor={id}>{label}</label>
       <input
         id={id}
         name={name}
         className="input"
         type={type}
         value={value ?? ''}
-        onChange={(e) => onChange(type === 'number' ? e.target.value : e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
         aria-invalid={hasError ? 'true' : 'false'}
         aria-describedby={hasError ? `${id}_err` : undefined}
       />
-      {hasError ? (
-        <div className="fieldError" id={`${id}_err`}>
-          {error}
-        </div>
-      ) : null}
+      {hasError && <div className="fieldError" id={`${id}_err`} role="alert">{error}</div>}
     </div>
   )
 }
-
