@@ -1,9 +1,28 @@
 import { createClient } from '@supabase/supabase-js'
 
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
+const SUPABASE_ANON_KEY =
+  import.meta.env.VITE_SUPABASE_ANON_KEY ||
+  import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY
 
-export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+if (!SUPABASE_URL) {
+  console.error(
+    '[Supabase] Missing VITE_SUPABASE_URL in .env — please add it.'
+  )
+}
+if (!SUPABASE_ANON_KEY) {
+  console.error(
+    '[Supabase] Missing VITE_SUPABASE_ANON_KEY in .env — please add it.'
+  )
+} else if (!SUPABASE_ANON_KEY.startsWith('eyJ')) {
+  console.warn(
+    '[Supabase] VITE_SUPABASE_ANON_KEY does not look like a valid Supabase anon key (should start with "eyJ...").',
+    'Current value starts with:',
+    SUPABASE_ANON_KEY.substring(0, 20) + '...'
+  )
+}
+
+export const supabase = createClient(SUPABASE_URL || '', SUPABASE_ANON_KEY || '')
 
 function computeTotalCents(items) {
   let total = 0
